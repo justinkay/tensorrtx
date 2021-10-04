@@ -9,9 +9,9 @@
 
 #define USE_FP16  // comment out this if want to use FP32
 #define DEVICE 0  // GPU id
-#define NMS_THRESH 0.4
-#define BBOX_CONF_THRESH 0.5
-#define BATCH_SIZE 1
+#define NMS_THRESH 0.65
+#define BBOX_CONF_THRESH 0.3
+#define BATCH_SIZE 32
 
 // stuff we know about the network and the input/output blobs
 static const int INPUT_H = Yolo::INPUT_H;
@@ -456,6 +456,10 @@ int main(int argc, char** argv){
 
     int fcount = 0;
     for (int f = 0; f < (int)file_names.size(); f++) {
+        
+        // start the batch timer before img preprocessing
+        auto start = std::chrono::system_clock::now();
+        
         fcount++;
         if (fcount < BATCH_SIZE && f + 1 != (int)file_names.size()) continue;
         for (int b = 0; b < fcount; b++) {
@@ -470,15 +474,19 @@ int main(int argc, char** argv){
         }
 
         // Run inference
-        auto start = std::chrono::system_clock::now();
         doInference(*context, data, prob, BATCH_SIZE);
-        auto end = std::chrono::system_clock::now();
-        std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+        
+        // do NMS
         std::vector<std::vector<Yolo::Detection>> batch_res(fcount);
         for (int b = 0; b < fcount; b++) {
             auto& res = batch_res[b];
             nms(res, &prob[b * OUTPUT_SIZE], BBOX_CONF_THRESH, NMS_THRESH);
         }
+        
+        // end the timer after NMS
+        auto end = std::chrono::system_clock::now();
+        std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+        
         for (int b = 0; b < fcount; b++) {
             auto& res = batch_res[b];
             //std::cout << res.size() << std::endl;

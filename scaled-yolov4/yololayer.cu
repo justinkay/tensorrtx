@@ -167,7 +167,8 @@ namespace nvinfer1
 
         for (int k = 0; k < 3; ++k) {
             int class_id = 0;
-            float max_cls_prob = 0.0;
+            // HACK THIS FOR SINGLE CLASS
+            float max_cls_prob = 1.0;
             for (int i = 5; i < info_len_i; ++i) {
                 float p = Logist(curInput[idx + k * info_len_i * total_grid + i * total_grid]);
                 if (p > max_cls_prob) {
